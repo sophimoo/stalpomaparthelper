@@ -23,9 +23,11 @@ import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
 import net.minecraft.network.packet.c2s.play.RenameItemC2SPacket;
 import net.minecraft.screen.AnvilScreenHandler;
 import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.text.Text;
 import net.stalpo.stalpomaparthelper.interfaces.InventoryExporter;
 import net.stalpo.stalpomaparthelper.interfaces.SlotClicker;
 import net.stalpo.stalpomaparthelper.mixin.MapRendererAccessor;
@@ -37,10 +39,13 @@ import net.stalpo.stalpomaparthelper.sequence.NameSequence;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class MapartShulker {
     public static final int NO_SYNC_ID = -10;
+
+    private static boolean shouldFixConcurrent = false;
 
     public static ScreenHandler sh;
     public static Map<Integer, Runnable> callSoon = new HashMap<>(); // syncId: callable function
@@ -69,17 +74,28 @@ public class MapartShulker {
     public static List<String> receivedSlots = new ArrayList<>();  // itemStack is not equals the same itemStack, lol. Well, I use item names then
     // TODO: create a custom object contains {stackName, stackCount, stackItemName} to use it instead of strings
 
-    public static List<MapIdComponent> getIds(){
-        Inventory inventory = ((InventoryExporter)sh).getInventory();
-        List<MapIdComponent> ids = new ArrayList<MapIdComponent>();;
+    private static void runSync(Runnable action) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+
+        if (mc.isOnThread()) {
+            action.run();
+        } else {
+            CompletableFuture.runAsync(action, mc).join();
+        }
+    }
+
+    public static List<MapIdComponent> getIds() {
+        Inventory inventory = ((InventoryExporter) sh).getInventory();
+        List<MapIdComponent> ids = new ArrayList<MapIdComponent>();
+        ;
         states = new ArrayList<MapState>();
 
-        for(int i = 0; i < inventory.size(); i++){
-            if(inventory.getStack(i).getItem().getClass() != FilledMapItem.class){
+        for (int i = 0; i < inventory.size(); i++) {
+            if (inventory.getStack(i).getItem().getClass() != FilledMapItem.class) {
                 continue;
             }
 
-            mapIdComponent = (MapIdComponent)inventory.getStack(i).get(DataComponentTypes.MAP_ID);
+            mapIdComponent = (MapIdComponent) inventory.getStack(i).get(DataComponentTypes.MAP_ID);
             mapId = mapIdComponent.id();
             ids.add(mapIdComponent);
             states.add(FilledMapItem.getMapState(inventory.getStack(i), MinecraftClient.getInstance().world));
@@ -92,19 +108,19 @@ public class MapartShulker {
         return states;
     }
 
-    public static void downloadShulker(){
-        if(sh != null){
+    public static void downloadShulker() {
+        if (sh != null) {
             StalpoMapartHelper.LOGCHAT("Downloading shulker");
-            Inventory inventory = ((InventoryExporter)sh).getInventory();
+            Inventory inventory = ((InventoryExporter) sh).getInventory();
 
             renderMaps(getIds(), getStates());
 
-            for(int i = 0; i < inventory.size(); i++){
-                if(inventory.getStack(i).getItem().getClass() != FilledMapItem.class){
+            for (int i = 0; i < inventory.size(); i++) {
+                if (inventory.getStack(i).getItem().getClass() != FilledMapItem.class) {
                     continue;
                 }
 
-                mapIdComponent = (MapIdComponent)inventory.getStack(i).get(DataComponentTypes.MAP_ID);
+                mapIdComponent = (MapIdComponent) inventory.getStack(i).get(DataComponentTypes.MAP_ID);
                 mapId = mapIdComponent.id();
                 mapState = FilledMapItem.getMapState(inventory.getStack(i), MinecraftClient.getInstance().world);
 
@@ -115,10 +131,10 @@ public class MapartShulker {
         }
     }
 
-    public static void findDuplicates(){
-        if(sh != null){
+    public static void findDuplicates() {
+        if (sh != null) {
             StalpoMapartHelper.LOGCHAT("Finding duplicates");
-            Inventory inventory = ((InventoryExporter)sh).getInventory();
+            Inventory inventory = ((InventoryExporter) sh).getInventory();
 
             renderMaps(getIds(), getStates());
 
@@ -127,46 +143,46 @@ public class MapartShulker {
             List<Integer> duplicates = new ArrayList<Integer>();
 
             File dump = new File(StalpoMapartHelper.modFolder, "maparts_dump");
-            for(File f : dump.listFiles()){
+            for (File f : dump.listFiles()) {
                 f.delete();
             }
 
-            for(int i = 0; i < inventory.size(); i++){
-                if(inventory.getStack(i).getItem().getClass() != FilledMapItem.class){
+            for (int i = 0; i < inventory.size(); i++) {
+                if (inventory.getStack(i).getItem().getClass() != FilledMapItem.class) {
                     continue;
                 }
 
-                mapIdComponent = (MapIdComponent)inventory.getStack(i).get(DataComponentTypes.MAP_ID);
+                mapIdComponent = (MapIdComponent) inventory.getStack(i).get(DataComponentTypes.MAP_ID);
                 mapId = mapIdComponent.id();
                 mapState = FilledMapItem.getMapState(inventory.getStack(i), MinecraftClient.getInstance().world);
-                downloadMap("maparts_dump", "map"+i+".png");
+                downloadMap("maparts_dump", "map" + i + ".png");
 
                 File f1 = new File(new File(StalpoMapartHelper.modFolder, "maparts_dump"), getFileName(i));
 
-                if(ImageHelper.isDuplicate(f1)){
+                if (ImageHelper.isDuplicate(f1)) {
                     StalpoMapartHelper.LOGCHAT("Duplicate found! (in downloads)");
-                    duplicates.add((Integer)i);
+                    duplicates.add((Integer) i);
                 }
 
                 File checkdir = new File(StalpoMapartHelper.modFolder, "maparts_dump");
-                for(File f2 : checkdir.listFiles()){
-                    if(!f2.getPath().equals(f1.getPath())){
-                        if(ImageHelper.sameImage(f1, f2)){
+                for (File f2 : checkdir.listFiles()) {
+                    if (!f2.getPath().equals(f1.getPath())) {
+                        if (ImageHelper.sameImage(f1, f2)) {
                             StalpoMapartHelper.LOGCHAT("Duplicate found! (in this shulk)");
-                            duplicates.add((Integer)i);
+                            duplicates.add((Integer) i);
                             break;
                         }
                     }
                 }
             }
-            for(Integer i : duplicates){
-                swap(i, i+27);
+            for (Integer i : duplicates) {
+                swap(i, i + 27);
             }
             StalpoMapartHelper.LOGCHAT("Finished finding duplicates");
         }
     }
 
-    private static boolean downloadMap(String DirName, String FileName){
+    private static boolean downloadMap(String DirName, String FileName) {
 
         MapRenderer mapRenderer = MinecraftClient.getInstance().getMapRenderer();
 
@@ -183,7 +199,7 @@ public class MapartShulker {
         NativeImageBackedTexture txt = ((MapTextureAccessor) mapTextureObj).getTexture();
 
         File screensDir = new File(StalpoMapartHelper.modFolder, DirName);
-        if(!screensDir.exists() && !screensDir.mkdir()) {
+        if (!screensDir.exists() && !screensDir.mkdir()) {
             StalpoMapartHelper.ERROR("Could not create directory " + screensDir.getAbsolutePath() + " cannot continue!");
             return false;
         }
@@ -193,8 +209,7 @@ public class MapartShulker {
         try {
 
             NativeImage image = txt.getImage();
-            if (image == null)
-            {
+            if (image == null) {
                 StalpoMapartHelper.ERROR("Map image is null — cannot write to file.");
                 return false;
             }
@@ -210,19 +225,19 @@ public class MapartShulker {
         return true;
     }
 
-    public static void lockShulkerCheck(){
+    public static void lockShulkerCheck() {
         Inventory inventory = MinecraftClient.getInstance().player.getInventory();
 
-        for(int i = 9; i < 36; i++){
-            if(inventory.getStack(i).getItem().getClass() == FilledMapItem.class){
+        for (int i = 9; i < 36; i++) {
+            if (inventory.getStack(i).getItem().getClass() == FilledMapItem.class) {
                 putShulker();
                 return;
             }
         }
     }
 
-    public static void findNotLocked(){
-        if(sh != null) {
+    public static void findNotLocked() {
+        if (sh != null) {
             StalpoMapartHelper.LOGCHAT("Finding not locked");
             Inventory inventory = ((InventoryExporter) sh).getInventory();
 
@@ -233,12 +248,12 @@ public class MapartShulker {
                     continue;
                 }
 
-                mapIdComponent = (MapIdComponent)inventory.getStack(i).get(DataComponentTypes.MAP_ID);
+                mapIdComponent = (MapIdComponent) inventory.getStack(i).get(DataComponentTypes.MAP_ID);
                 mapId = mapIdComponent.id();
                 mapState = FilledMapItem.getMapState(inventory.getStack(i), MinecraftClient.getInstance().world);
 
                 if (!mapState.locked) {
-                    swap(i, i+27);
+                    swap(i, i + 27);
                 }
             }
             StalpoMapartHelper.LOGCHAT("Finished finding not locked");
@@ -424,7 +439,7 @@ public class MapartShulker {
         }
 
         // previous inventory syncing (it's possible to click any crafting slot, even if it's empty)
-        // ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, 1, 0, SlotActionType.QUICK_MOVE);
+        // click(mc, null, 1, 0, SlotActionType.QUICK_MOVE);
 
         // i think we can for now allow server-side updates
         // because we've done our client-side work
@@ -439,29 +454,29 @@ public class MapartShulker {
         StalpoMapartHelper.LOGCHAT("Finished copying maps");
     }
 
-    public static void lockMaps(){
+    public static void lockMaps() {
         StalpoMapartHelper.LOGCHAT("Locking maps");
         Inventory inventory = MinecraftClient.getInstance().player.getInventory();
-        for(int i = 0; i < 27; i++){
-            if(inventory.getStack(i+9).getItem().getClass() != FilledMapItem.class){
+        for (int i = 0; i < 27; i++) {
+            if (inventory.getStack(i + 9).getItem().getClass() != FilledMapItem.class) {
                 continue;
             }
             boolean found = false;
-            for(int k = 0; k < 9; k++){
-                if(inventory.getStack(k).getItem() == Items.GLASS_PANE){
-                    moveOne(k+30, 1);
+            for (int k = 0; k < 9; k++) {
+                if (inventory.getStack(k).getItem() == Items.GLASS_PANE) {
+                    moveOne(k + 30, 1);
                     found = true;
                     break;
                 }
             }
-            if(!found){
+            if (!found) {
                 StalpoMapartHelper.LOGCHAT("Ran out of glass panes! Turning off auto locker...");
                 StalpoMapartHelper.mapLockerToggled = false;
                 return;
             }
-            moveOne(i+3, 0);
+            moveOne(i + 3, 0);
             sh.onContentChanged(inventory);
-            swap(2, i+3);
+            swap(2, i + 3);
         }
         StalpoMapartHelper.LOGCHAT("Finished locking maps");
     }
@@ -484,10 +499,10 @@ public class MapartShulker {
     }
 
     public static int findByMapId(PlayerInventory inventory, int mapId) {
-            for (int slot = 0; slot < 45; slot++) {
-                if (inventory.getStack(slot).getItem().getClass() != FilledMapItem.class) continue;
-                if (inventory.getStack(slot).get(DataComponentTypes.MAP_ID).id() == mapId) return slot;
-            }
+        for (int slot = 0; slot < 45; slot++) {
+            if (inventory.getStack(slot).getItem().getClass() != FilledMapItem.class) continue;
+            if (inventory.getStack(slot).get(DataComponentTypes.MAP_ID).id() == mapId) return slot;
+        }
         return -1;
     }
 
@@ -564,11 +579,18 @@ public class MapartShulker {
             quickMove(i);
             sh.nextRevision();
 
-            ((AnvilScreenHandler) sh).setNewItemName(newName);
+            // it's possible to always use runSync, the speed it decent
+            if (shouldFixConcurrent) runSync(() -> ((AnvilScreenHandler) sh).setNewItemName(newName));
+            else ((AnvilScreenHandler) sh).setNewItemName(newName);
+
             int cost = ((AnvilScreenHandler) sh).getLevelCost();
 
             mc.player.networkHandler.sendPacket(new RenameItemC2SPacket(newName));
             sh.nextRevision();
+
+            // client-side visuals
+            ItemStack mapStack = sh.getSlot(0).getStack();
+            mapStack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(newName));
 
             try {
                 moveStack(2, i);
@@ -578,6 +600,7 @@ public class MapartShulker {
 
             // fix client-side desync (for some reason this slot doesn't update as fast as we need)
             sh.setStackInSlot(0, sh.getRevision(), ItemStack.EMPTY);
+            sh.setStackInSlot(i, sh.getRevision(), mapStack);
 
             currentExpLevel -= cost;
             sequence.increment();
@@ -597,7 +620,6 @@ public class MapartShulker {
 
         cancelUpdatesSyncId = NO_SYNC_ID;
 
-
         int somethingWentWrong = 500;  // 500 ms is a mid-value even for the high ping
         int timeout = 10;
 
@@ -616,38 +638,75 @@ public class MapartShulker {
         if (mapartIsDone) StalpoMapartHelper.LOGCHAT("§2Finished naming map art!");
         else StalpoMapartHelper.LOGCHAT("§2Finished naming shulk!");
     }
-    
+
     public static void sleep() {
-        try { TimeUnit.MILLISECONDS.sleep(delay); } catch (InterruptedException ignored) { }
+        try {
+            TimeUnit.MILLISECONDS.sleep(delay);
+        } catch (InterruptedException ignored) {
+        }
     }
 
-    synchronized protected static void pickUp(int slot, int button) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-
+    synchronized protected static void click(MinecraftClient mc, Slot slot, int invSlot, int button, SlotActionType action) {
         // don't click if the player got kicked
         if (mc.player == null) return;
 
         // prevent clicks if gui closed
         if (mc.player.currentScreenHandler == null) return;
 
-        ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, slot, button, SlotActionType.PICKUP);
+        if (mc.currentScreen instanceof SlotClicker clicker) {
+            if (!shouldFixConcurrent) {
+                var previousSlots = mc.player.currentScreenHandler.getStacks();
+                var previousRevision = mc.player.currentScreenHandler.getRevision();
+                var previousCursor = mc.player.currentScreenHandler.getCursorStack();
+                try {
+
+                    clicker.StalpoMapartHelper$onMouseClick(slot, invSlot, button, action);
+                } catch (Throwable exception) { // it is NOT java.util.ConcurrentModificationException do not trust them
+                    shouldFixConcurrent = true;
+                    runSync(() -> StalpoMapartHelper.CHAT("""
+                            §6===========================
+                            §6WARNING! §cYou are using a mod that adds something multithreaded to the game. \
+                            This mod affects all other mods, so the§4 speed of actions will be slowed down. §c\
+                            True 0 tick is not possible until you remove that mod. \
+                            The actual §2/delay§c between actions §4will be HIGHER§c than the one you set. \
+                            §6===========================
+                            """));
+
+                    // oh my god...
+                    // client-side inv is desynced. Fix it manually...
+                    runSync(() -> mc.player.currentScreenHandler.updateSlotStacks(previousRevision, previousSlots, previousCursor));
+                    runSync(() -> clicker.StalpoMapartHelper$onMouseClick(slot, invSlot, button, action));
+                }
+            } else {
+                runSync(() -> clicker.StalpoMapartHelper$onMouseClick(slot, invSlot, button, action));
+                // mods involving parallelism usually strictly check access from child threads
+                // we have to call our clicks from the main thread
+                // I tried just to use mc.execute(click), but it leads to the missing packets and desyncs
+                // I also tried to run sync mc.executeAsync, but it adds additional delay
+                // Even 0 tick actions take like 1-2 mc for each action
+                // I tried to sync it manually as well, but it didn't help
+                // Unfortunately, we must deal with those small delays.
+            }
+        }
+    }
+
+    synchronized protected static void pickUp(int slot, int button) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+
+        click(mc, null, slot, button, SlotActionType.PICKUP);
         sleep();
     }
 
     protected static void moveOne(int from, int to) {
         MinecraftClient mc = MinecraftClient.getInstance();
 
-        // don't click if the player got kicked
-        if (mc.player == null) return;
-
-        // prevent clicks if gui closed
-        if (mc.player.currentScreenHandler == null) return;
-
-        ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, from, 0, SlotActionType.PICKUP);
+        click(mc, null, from, 0, SlotActionType.PICKUP);
         sleep();
-        ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, to, 1, SlotActionType.PICKUP);
+
+        click(mc, null, to, 1, SlotActionType.PICKUP);
         sleep();
-        ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, from, 0, SlotActionType.PICKUP);
+
+        click(mc, null, from, 0, SlotActionType.PICKUP);
         sleep();
     }
 
@@ -658,17 +717,16 @@ public class MapartShulker {
         // don't click if the player got kicked
         if (mc.player == null) return;
 
-        // prevent clicks if gui closed
-        if (mc.player.currentScreenHandler == null) return;
         boolean destinationIsEmpty = mc.player.currentScreenHandler.getSlot(to).getStack().isEmpty();
 
-        ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, from, 0, SlotActionType.PICKUP);
+        click(mc, null, from, 0, SlotActionType.PICKUP);
         sleep();
-        ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, to, 0, SlotActionType.PICKUP);
+
+        click(mc, null, to, 0, SlotActionType.PICKUP);
         sleep();
 
         if (!destinationIsEmpty) { // reduce amount of packets if possible!
-            ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, from, 0, SlotActionType.PICKUP);
+            click(mc, null, from, 0, SlotActionType.PICKUP);
             sleep();
         }
     }
@@ -676,63 +734,51 @@ public class MapartShulker {
     protected static void moveStack(int from, int to) {
         MinecraftClient mc = MinecraftClient.getInstance();
 
-        // don't click if the player got kicked
-        if (mc.player == null) return;
-
-        // prevent clicks if gui closed
-        if (mc.player.currentScreenHandler.syncId == mc.player.playerScreenHandler.syncId) return;
-
-        ((SlotClicker)MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, from, 0, SlotActionType.PICKUP);
+        click(mc, null, from, 0, SlotActionType.PICKUP);
         sleep();
 
-        ((SlotClicker)MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, to, 0, SlotActionType.PICKUP);
+        click(mc, null, to, 0, SlotActionType.PICKUP);
         sleep();
-
     }
+
     protected static void quickMove(int slot) {
         MinecraftClient mc = MinecraftClient.getInstance();
 
-        // don't click if the player got kicked
-        if (mc.player == null) return;
-
-        // prevent clicks if gui closed
-        if (mc.player.currentScreenHandler.syncId == mc.player.playerScreenHandler.syncId) return;
-
-        ((SlotClicker) MinecraftClient.getInstance().currentScreen).StalpoMapartHelper$onMouseClick(null, slot, 0, SlotActionType.QUICK_MOVE);
+        click(mc, null, slot, 0, SlotActionType.QUICK_MOVE);
         sleep();
     }
 
-    public static void setNextMap(){
+    public static void setNextMap() {
         File checkdir = new File(StalpoMapartHelper.modFolder, "maparts");
         int i = 1;
-        while(new File(checkdir, getFileName(i)).isFile()){
+        while (new File(checkdir, getFileName(i)).isFile()) {
             i++;
         }
         nextMap = i;
         StalpoMapartHelper.LOG("nextMap: " + nextMap);
     }
 
-    private static String getFileName(int i){
-        return ("map"+i+".png");
+    private static String getFileName(int i) {
+        return ("map" + i + ".png");
     }
 
-    private static int getNextMap(){
+    private static int getNextMap() {
         File checkdir = new File(StalpoMapartHelper.modFolder, "maparts");
         int i = nextMap + 1;
-        while(new File(checkdir, getFileName(i)).isFile()){
+        while (new File(checkdir, getFileName(i)).isFile()) {
             i++;
         }
         return i;
     }
 
-    public static void renderMaps(List<MapIdComponent> ids, List<MapState> states){
-        for(int i = 0; i < ids.size(); i++){
+    public static void renderMaps(List<MapIdComponent> ids, List<MapState> states) {
+        for (int i = 0; i < ids.size(); i++) {
             MapRenderState renderState = new MapRenderState();
             renderMap(true, renderState);
         }
     }
 
-    public static void renderMap(Boolean showDecorations, MapRenderState renderState){
+    public static void renderMap(Boolean showDecorations, MapRenderState renderState) {
         try {
             final MatrixStack matrixStack = new MatrixStack();
 
@@ -755,7 +801,7 @@ public class MapartShulker {
             );
 
             matrixStack.pop();
-        } catch (Exception e){
+        } catch (Exception e) {
             // doesn't need to actually work lmao just get into draw part
         }
     }
