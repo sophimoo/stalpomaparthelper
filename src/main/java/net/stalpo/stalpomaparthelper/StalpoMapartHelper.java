@@ -51,6 +51,10 @@ public class StalpoMapartHelper implements ClientModInitializer {
 
 	public static File modFolder;
 
+    public static String prefix = "§5[Mapart Helper]§d ";
+    public static String enabled = "§aenabled!";
+    public static String disabled = "§cdisabled";
+
 	@Override
 	public void onInitializeClient() {
 		LOG(MOD_ID+": Hello World!");
@@ -96,45 +100,45 @@ public class StalpoMapartHelper implements ClientModInitializer {
 			while (keyToggleMapCopier.wasPressed()) {
 				mapCopierToggled = !mapCopierToggled;
 				if(mapCopierToggled){
-					LOGCHAT("Map copier enabled!");
+					LOGCHAT(prefix + "Map copier " + enabled);
 					disableOtherToggles(1);
-				}else{
-					LOGCHAT("Map copier disabled!");
+				} else{
+					LOGCHAT(prefix + "Map copier " + disabled);
 				}
 			}
 			while (keyToggleMapLocker.wasPressed()) {
 				mapLockerToggled = !mapLockerToggled;
-				if(mapLockerToggled){
-					LOGCHAT("Map locker enabled!");
+				if(mapLockerToggled) {
+					LOGCHAT(prefix + "Map locker " + enabled);
 					disableOtherToggles(2);
-				}else{
-					LOGCHAT("Map locker disabled!");
+				} else{
+					LOGCHAT(prefix + "Map locker " + disabled);
 				}
 			}
 			while (keyToggleMapNamer.wasPressed()) {
 				mapNamerToggled = !mapNamerToggled;
-				if(mapNamerToggled){
-					LOGCHAT("Map namer enabled!");
+				if(mapNamerToggled) {
+					LOGCHAT(prefix + "Map namer " + enabled);
 					disableOtherToggles(3);
-				}else{
-					LOGCHAT("Map namer disabled!");
+				} else{
+					LOGCHAT(prefix + "Map namer " + disabled);
 				}
 			}
 			while (keyToggleMapSorter.wasPressed()) {
 				mapSorterToggled = !mapSorterToggled;
 				if (mapSorterToggled) {
-					LOGCHAT("Map sorter enabled!");
+					LOGCHAT(prefix + "Map sorter " + enabled);
 					disableOtherToggles(4);
 				} else {
-					LOGCHAT("Map sorter disabled!");
+					LOGCHAT(prefix + "Map sorter " + disabled);
 				}
 			}
 			while (keyToggleQuickTakeMaps.wasPressed()) {
 				quickTakeMapsToggled = !quickTakeMapsToggled;
 				if (quickTakeMapsToggled) {
-					LOGCHAT("Quick-take from bundles enabled!");
+					LOGCHAT(prefix + "Quick-take from bundles " + enabled);
 				} else {
-					LOGCHAT("Quick-take from bundles disabled!");
+					LOGCHAT(prefix + "Quick-take from bundles " + disabled);
 				}
 			}
 		});
@@ -146,62 +150,62 @@ public class StalpoMapartHelper implements ClientModInitializer {
 		});
 	}
 
-	private void disableOtherToggles(int t){
+	private void disableOtherToggles(int t) {
 		switch(t){
 			case 1:
 				if(mapLockerToggled){
 					mapLockerToggled = false;
-					LOGCHAT("Map locker disabled!");
+					LOGCHAT(prefix + "Map locker " + disabled);
 				}
 				if(mapNamerToggled){
 					mapNamerToggled = false;
-					LOGCHAT("Map namer disabled!");
+					LOGCHAT(prefix + "Map namer " + enabled);
 				}
 				if (mapSorterToggled) {
 					mapSorterToggled = false;
-					LOGCHAT("Map sorter disabled!");
+					LOGCHAT(prefix + "Map sorter " + disabled);
 				}
 				break;
 			case 2:
 				if(mapCopierToggled){
 					mapCopierToggled = false;
-					LOGCHAT("Map copier disabled!");
+					LOGCHAT(prefix + "Map copier ");
 				}
 				if(mapNamerToggled){
 					mapNamerToggled = false;
-					LOGCHAT("Map namer disabled!");
+					LOGCHAT(prefix + "Map namer " + disabled);
 				}
 				if (mapSorterToggled) {
 					mapSorterToggled = false;
-					LOGCHAT("Map sorter disabled!");
+					LOGCHAT(prefix + "Map sorter " + disabled);
 				}
 				break;
 			case 3:
 				if(mapCopierToggled){
 					mapCopierToggled = false;
-					LOGCHAT("Map copier disabled!");
+					LOGCHAT(prefix + "Map copier " + disabled);
 				}
 				if(mapLockerToggled){
 					mapLockerToggled = false;
-					LOGCHAT("Map locker disabled!");
+					LOGCHAT(prefix + "Map locker " + disabled);
 				}
 				if (mapSorterToggled) {
 					mapSorterToggled = false;
-					LOGCHAT("Map sorter disabled!");
+					LOGCHAT(prefix + "Map sorter " + disabled);
 				}
 				break;
 			case 4:
 				if (mapCopierToggled) {
 					mapCopierToggled = false;
-					LOGCHAT("Map copier disabled!");
+					LOGCHAT(prefix + "Map copier " + disabled);
 				}
 				if (mapLockerToggled) {
 					mapLockerToggled = false;
-					LOGCHAT("Map locker disabled!");
+					LOGCHAT(prefix + "Map locker " + disabled);
 				}
 				if (mapNamerToggled) {
 					mapNamerToggled = false;
-					LOGCHAT("Map namer disabled!");
+					LOGCHAT(prefix + "Map namer " + disabled);
 				}
 		}
 	}

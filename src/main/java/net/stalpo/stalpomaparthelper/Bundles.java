@@ -106,9 +106,7 @@ public class Bundles extends MapartShulker {
     }
 
     public static void putMapsToBundle() {
-        StalpoMapartHelper.LOGCHAT("[1] putting maps into a bundle");
         if (bundleProcessActive) return;
-        StalpoMapartHelper.LOGCHAT("[2] putting maps into a bundle");
 
         ClientPlayerEntity player = MinecraftClient.getInstance().player;
 
@@ -131,7 +129,6 @@ public class Bundles extends MapartShulker {
         try {
             int bundleSlot = getBundleSlot(hotbar, screenSize, false, true);
             int canPutCount = canFitUntilItBursts(bundleSlot);
-            StalpoMapartHelper.LOGCHAT( bundleSlot + " " + canPutCount);
 
             if (bundleSlot == -1) {
                 bundleProcessActive = false;

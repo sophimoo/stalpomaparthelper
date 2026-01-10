@@ -66,7 +66,7 @@ public final class NameMapCommand {
 
     public static int NameMapWithoutY(String name, int x) {
         if (!name.contains("{cur}")) {
-            StalpoMapartHelper.CHAT("You have to specify §4{cur}§r and §4{total}§r (optional) in the name!\nIf you're using \"§2{§r\" or \"§2}§r\" in the name, just use them as is: §2{§4{cur}§r, §4{x}§2}§r");
+            StalpoMapartHelper.CHAT("You have to specify §4{cur}§r and §4{total}§r (optional) in the name!\nIf you're using \"§2{§r\" or \"§2}§r\" in the name, just use them as is: §2{§4{cur}§r, §4{total}§2}§r");
             return Command.SINGLE_SUCCESS;  // wha is it
         }
 
