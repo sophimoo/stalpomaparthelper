@@ -2,6 +2,7 @@ package net.stalpo.stalpomaparthelper.mixin;
 
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Util;
@@ -24,16 +25,16 @@ public abstract class HandledScreenMixin extends Screen implements SlotClicker, 
     protected HandledScreenMixin() { super(null); }
 
     @Inject(method="keyPressed", at=@At("HEAD"))
-    private void keyBindPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        if (StalpoMapartHelper.keyDownloadMaps.matchesKey(keyCode, scanCode)) {
+    private void keyBindPressed(KeyInput keyInput, CallbackInfoReturnable<Boolean> cir) {
+        if (StalpoMapartHelper.keyDownloadMaps.matchesKey(keyInput)) {
             Util.getIoWorkerExecutor().execute(MapartShulker::downloadShulker);
-        } else if (StalpoMapartHelper.keyFindDuplicates.matchesKey(keyCode, scanCode)) {
+        } else if (StalpoMapartHelper.keyFindDuplicates.matchesKey(keyInput)) {
             Util.getIoWorkerExecutor().execute(MapartShulker::findDuplicates);
-        } else if (StalpoMapartHelper.keyFindNotLocked.matchesKey(keyCode, scanCode)) {
+        } else if (StalpoMapartHelper.keyFindNotLocked.matchesKey(keyInput)) {
             Util.getIoWorkerExecutor().execute(MapartShulker::findNotLocked);
-        } else if (StalpoMapartHelper.keyPutInTheBundle.matchesKey(keyCode, scanCode)) {
+        } else if (StalpoMapartHelper.keyPutInTheBundle.matchesKey(keyInput)) {
             Util.getIoWorkerExecutor().execute(Bundles::putMapsToBundle);
-        } else if (StalpoMapartHelper.keyPullOutOfTheBundle.matchesKey(keyCode, scanCode)) {
+        } else if (StalpoMapartHelper.keyPullOutOfTheBundle.matchesKey(keyInput)) {
             Util.getIoWorkerExecutor().execute(Bundles::pullMapsOutOfBundle);
         }
     }

@@ -32,21 +32,21 @@ public class SlotUpdateMixin {
     private void onSlotUpdate(InventoryS2CPacket packet, CallbackInfo ci) {
         MinecraftClient mc = MinecraftClient.getInstance();
 
-        MapartShulker.receivedSlots = new ArrayList<>(packet.getContents())
+        MapartShulker.receivedSlots = new ArrayList<>(packet.contents())
                 .stream()
                 .map(itemStack -> itemStack.getName().getString()).toList();
 
         if (mc.player == null || mc.currentScreen == null) return;
-        if (mc.player.currentScreenHandler.syncId != packet.getSyncId()) return;
+        if (mc.player.currentScreenHandler.syncId != packet.syncId()) return;
 
-        if (MapartShulker.cancelUpdatesSyncId == packet.getSyncId()) {
+        if (MapartShulker.cancelUpdatesSyncId == packet.syncId()) {
             ci.cancel();
 
-        } else if (packet.getRevision() == 1 && MapartShulker.callSoon.containsKey(packet.getSyncId())) {
-            mc.player.currentScreenHandler.updateSlotStacks(1, packet.getContents(), packet.getCursorStack());
+        } else if (packet.revision() == 1 && MapartShulker.callSoon.containsKey(packet.syncId())) {
+            mc.player.currentScreenHandler.updateSlotStacks(1, packet.contents(), packet.cursorStack());
 
-            Util.getIoWorkerExecutor().execute(MapartShulker.callSoon.get(packet.getSyncId()));
-            MapartShulker.callSoon.remove(packet.getSyncId());
+            Util.getIoWorkerExecutor().execute(MapartShulker.callSoon.get(packet.syncId()));
+            MapartShulker.callSoon.remove(packet.syncId());
 
             ci.cancel();
         }

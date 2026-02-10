@@ -4,6 +4,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.AnvilScreen;
+import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.MapRenderState;
 import net.minecraft.client.render.MapRenderer;
 import net.minecraft.client.sound.PositionedSoundInstance;
@@ -25,6 +26,8 @@ import net.minecraft.screen.AnvilScreenHandler;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.screen.sync.ComponentChangesHash;
+import net.minecraft.screen.sync.ItemStackHash;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
@@ -487,13 +490,18 @@ public class MapartShulker {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return -1;
 
-        Int2ObjectMap<ItemStack> int2ObjectMap = new Int2ObjectOpenHashMap<>();
-        int2ObjectMap.put(1, new ItemStack(Items.BEDROCK, 64));
+        // Create a simple component hasher - uses component's hashCode
+        ComponentChangesHash.ComponentHasher hasher = component -> component.hashCode();
+        
+        Int2ObjectMap<ItemStackHash> modifiedStacks = new Int2ObjectOpenHashMap<>();
+        modifiedStacks.put(1, ItemStackHash.fromItemStack(new ItemStack(Items.BEDROCK, 64), hasher));
+        
+        ItemStackHash cursorHash = ItemStackHash.fromItemStack(new ItemStack(Items.BEDROCK, 64), hasher);
 
         MinecraftClient.getInstance().player.networkHandler
                 .sendPacket(new ClickSlotC2SPacket(
                         syncId, mc.player.playerScreenHandler.getRevision(),
-                        0, 0, SlotActionType.PICKUP, new ItemStack(Items.BEDROCK, 64), int2ObjectMap));
+                        (short) 0, (byte) 0, SlotActionType.PICKUP, modifiedStacks, cursorHash));
 
         return mc.player.playerScreenHandler.getRevision();
     }
@@ -795,7 +803,7 @@ public class MapartShulker {
             MinecraftClient.getInstance().getMapRenderer().draw(
                     renderState,
                     matrixStack,
-                    MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers(),
+                    MinecraftClient.getInstance().gameRenderer.getEntityRenderCommandQueue(),
                     showDecorations,
                     15728880
             );
