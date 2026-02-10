@@ -8,6 +8,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -25,7 +26,7 @@ import static net.stalpo.stalpomaparthelper.SortMapsCommand.registerSortMapWitho
 
 public class StalpoMapartHelper implements ClientModInitializer {
 	public static final String MOD_ID = "stalpomaparthelper";
-	private static final KeyBinding.Category category = KeyBinding.Category.MISC;
+	private static final KeyBinding.Category category = KeyBinding.Category.create(Identifier.of(MOD_ID, "keybindings"));
 	private static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	public static KeyBinding keyDownloadMaps;
